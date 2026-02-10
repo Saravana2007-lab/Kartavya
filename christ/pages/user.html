@@ -1,104 +1,64 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>User Registration</title>
+  <title>User Login</title>
 </head>
 <body>
 
-<h2 id="title">User Registration</h2>
+<h2>User Login</h2>
 
 <div id="loginBox">
   <input id="name" placeholder="Full Name"><br><br>
   <input id="aadhaar" placeholder="Aadhaar Number"><br><br>
   <input id="phone" placeholder="Phone Number"><br><br>
 
-  <div id="recaptcha"></div><br>
-
-  <button onclick="sendOTP()">Send OTP</button><br><br>
-
-  <input id="otp" placeholder="Enter OTP"><br><br>
-  <button onclick="verifyOTP()">Verify OTP</button>
+  <button onclick="fakeLogin()">Login</button>
 </div>
 
 <hr>
 
 <div id="dashboard" style="display:none;">
   <h3>Welcome! You are logged in ✅</h3>
+  <p id="userInfo"></p>
 </div>
 
 <script type="module">
-import { auth, db } from "../firebase.js";
-import {
-  RecaptchaVerifier,
-  signInWithPhoneNumber
-} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
-import {
-  doc,
-  setDoc
-} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { db } from "../firebase.js";
+import { doc, setDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
-let confirmationResult;
+// Temporary UID generator using phone number
+function generateUID(phone) {
+  return "USER_" + phone;
+}
 
-// Setup reCAPTCHA
-const recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha", {
-  size: "normal"
-});
+window.fakeLogin = async function () {
+  const name = document.getElementById("name").value.trim();
+  const aadhaar = document.getElementById("aadhaar").value.trim();
+  const phone = document.getElementById("phone").value.trim();
 
-// Send OTP
-window.sendOTP = async function () {
-  const phoneInput = document.getElementById("phone").value.trim();
-
-  if (!phoneInput) {
-    alert("Enter phone number");
+  if (!name || !aadhaar || !phone) {
+    alert("Fill all fields");
     return;
   }
 
-  const phone = "+91" + phoneInput;
+  const uid = generateUID(phone);
 
-  try {
-    confirmationResult = await signInWithPhoneNumber(
-      auth,
-      phone,
-      recaptchaVerifier
-    );
-    alert("OTP Sent!");
-  } catch (err) {
-    alert(err.message);
-  }
-};
+  await setDoc(doc(db, "users", uid), {
+    name,
+    aadhaar,
+    phone,
+    createdAt: new Date()
+  });
 
-// Verify OTP
-window.verifyOTP = async function () {
-  const otp = document.getElementById("otp").value.trim();
-
-  if (!otp) {
-    alert("Enter OTP");
-    return;
-  }
-
-  try {
-    const result = await confirmationResult.confirm(otp);
-
-    await setDoc(doc(db, "users", result.user.uid), {
-      name: document.getElementById("name").value,
-      aadhaar: document.getElementById("aadhaar").value,
-      phone: document.getElementById("phone").value,
-      createdAt: new Date()
-    });
-
-    alert("Login Successful ✅");
-
-    // Hide login, show dashboard
-    document.getElementById("loginBox").style.display = "none";
-    document.getElementById("title").style.display = "none";
-    document.getElementById("dashboard").style.display = "block";
-
-  } catch (err) {
-    alert(err.message);
-  }
+  // Show dashboard
+  document.getElementById("loginBox").style.display = "none";
+  document.getElementById("dashboard").style.display = "block";
+  document.getElementById("userInfo").innerText =
+    `Name: ${name} | Phone: ${phone}`;
 };
 </script>
 
 </body>
 </html>
+
 
